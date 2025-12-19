@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>JetStream · Job created</title>
+    <link rel="icon" type="image/png" href="/JetStream-logo.png" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <main class="shell">
+        <header class="shell-header">
+          <div class="brand">
+            <div class="brand-dot"></div>
+            <div class="brand-text">JetStream</div>
+            <div class="login-title-sub">Job started</div>
+          </div>
+          <div class="shell-actions">
+            <div class="badge-pill">Server-side throttled events</div>
+          </div>
+        </header>
+
+        <section class="view dashboard-panel active">
+          <div class="login-panel">
+            
+            <div class="login-title-main">Sharing job created successfully</div>
+            <div class="login-title-sub">
+              Events will be sent to AppsFlyer in the background according to
+              the configured schedule.
+            </div>
+          </div>
+
+          <div class="upload-rail">
+            <div class="upload-rail-row">
+              <div class="chip-field">
+                <div class="chip-label">Job ID</div>
+                <div id="jobIdValue" style="font-size:13px;"></div>
+              </div>
+              <div class="chip-field">
+                <div class="chip-label">Bundle</div>
+                <div id="bundleValue" style="font-size:13px;"></div>
+              </div>
+            </div>
+
+            <div class="upload-rail-row">
+              <div class="chip-field">
+                <div class="chip-label">File</div>
+                <div id="fileValue" style="font-size:13px;"></div>
+              </div>
+              <div class="chip-field">
+                <div class="chip-label">Records</div>
+                <div id="recordsValue" style="font-size:13px;"></div>
+              </div>
+              <div class="chip-field" style="max-width: 180px;">
+                <div class="chip-label">Interval</div>
+                <div id="intervalValue" style="font-size:13px;"></div>
+              </div>
+            </div>
+
+            <div class="upload-rail-row">
+              <div class="chip-field" style="max-width: 140px;">
+                <div class="chip-label">Days</div>
+                <div id="daysValue" style="font-size:13px;"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dashboard-meta">
+            <div class="text-small">
+              You can start another sharing job from the dashboard at any time.
+            </div>
+            <div class="tag-soft">
+              Status updates at 09:00 &amp; 18:00, heartbeat every 8 hours
+            </div>
+          </div>
+
+          <a href="/dashboard" style="margin-top:8px; text-decoration:none;">
+            <button class="btn btn-wide" type="button">
+              Back to dashboard
+              <span class="arrow">↩</span>
+            </button>
+          </a>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      // читаємо параметри з URL і заповнюємо значення
+      const p = new URLSearchParams(window.location.search);
+
+      const byId = (id) => document.getElementById(id);
+
+      byId("jobIdValue").textContent = p.get("jobId") || "-";
+      byId("bundleValue").textContent = p.get("bundle") || "-";
+      byId("fileValue").textContent = p.get("file") || "-";
+      byId("recordsValue").textContent = p.get("records") || "-";
+      byId("intervalValue").textContent = p.get("interval")
+        ? `~${p.get("interval")} sec`
+        : "-";
+      byId("daysValue").textContent = p.get("days") || "-";
+    </script>
+  </body>
+</html>

@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>JetStream · Logs</title>
+    <link rel="icon" type="image/png" href="/JetStream-logo.png" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <!-- Notes button & panel -->
+    <div class="notes-toggle" id="notesToggle">Notes</div>
+
+    <div class="notes-panel hidden" id="notesPanel">
+      <div class="notes-panel-header">
+        <div class="notes-panel-title">Private notes (encrypted on server)</div>
+        <button class="icon-button" id="notesCloseBtn">✕</button>
+      </div>
+      <textarea id="notesText" placeholder="Write anything you want to remember..."></textarea>
+      <div class="notes-panel-actions">
+        <button class="btn-outline btn" id="notesCancelBtn">Cancel</button>
+        <button class="btn" id="notesSaveBtn">
+          Save
+          <span class="arrow">✔</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="page">
+      <main class="shell">
+        <!-- HEADER -->
+        <header class="shell-header">
+          <div class="brand">
+            <div class="brand-dot"></div>
+            <div class="brand-text">JETSTREAM</div>
+            <div class="login-title-sub">Server logs</div>
+          </div>
+          <div class="shell-actions">
+            <a href="/dashboard" class="header-link-btn">
+              <div class="btn-chip">
+                Dashboard
+                <span class="arrow">↩</span>
+              </div>
+            </a>
+          </div>
+        </header>
+
+        <section class="view dashboard-panel active">
+          <div class="login-panel">
+             
+            <div class="login-title-main">AppsFlyer requests & errors</div>
+            <div class="login-title-sub">
+              These logs are stored in memory for this server instance. Use the
+              bundle filter to narrow events.
+            </div>
+          </div>
+
+          <div class="upload-rail">
+            <div class="upload-rail-row" style="align-items: center">
+              <div class="chip-field">
+                <div class="chip-label">Filter by bundle</div>
+                <input
+                  type="text"
+                  id="logBundleFilter"
+                  placeholder="com.example.app (optional)"
+                />
+              </div>
+              <button
+                type="button"
+                id="refreshLogsBtn"
+                class="btn btn-wide"
+                style="max-width: 180px"
+              >
+                Refresh logs
+              </button>
+            </div>
+
+            <div
+              style="
+                margin-top: 10px;
+                max-height: 320px;
+                overflow-y: auto;
+                border-radius: 18px;
+                border: 1px solid rgba(255, 255, 255, 0.06);
+                background: rgba(10, 10, 12, 0.85);
+              "
+            >
+              <table
+                style="
+                  width: 100%;
+                  border-collapse: collapse;
+                  font-size: 11px;
+                "
+              >
+                <thead>
+                  <tr style="background: rgba(255, 255, 255, 0.02)">
+                    <th
+                      style="
+                        text-align: left;
+                        padding: 6px 10px;
+                        white-space: nowrap;
+                      "
+                    >
+                      Time
+                    </th>
+                    <th
+                      style="
+                        text-align: left;
+                        padding: 6px 10px;
+                        white-space: nowrap;
+                      "
+                    >
+                      Bundle
+                    </th>
+                    <th
+                      style="
+                        text-align: left;
+                        padding: 6px 10px;
+                        white-space: nowrap;
+                      "
+                    >
+                      Type
+                    </th>
+                    <th style="text-align: left; padding: 6px 10px">
+                      Message
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="logsTableBody"></tbody>
+              </table>
+            </div>
+
+            <div class="text-small">
+              Latest ~200 entries. Error rows (`send_error`) відповідають
+              помилкам від AppsFlyer (додатково дублюються в Telegram).
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const logsBody = document.getElementById("logsTableBody");
+      const bundleFilterInput = document.getElementById("logBundleFilter");
+      const refreshBtn = document.getElementById("refreshLogsBtn");
+
+      async function loadLogs() {
+        const bundle = bundleFilterInput.value.trim();
+        const params = new URLSearchParams();
+        params.set("limit", "200");
+        if (bundle) params.set("bundle", bundle);
+
+        try {
+          const res = await fetch(`/api/logs?${params.toString()}`);
+          if (!res.ok) return;
+          const data = await res.json();
+          renderLogs(data);
+        } catch (e) {
+          console.error("Failed to load logs", e);
+        }
+      }
+
+      function renderLogs(items) {
+        logsBody.innerHTML = "";
+        if (!items.length) {
+          const tr = document.createElement("tr");
+          const td = document.createElement("td");
+          td.colSpan = 4;
+          td.style.padding = "8px 10px";
+          td.textContent = "No logs yet.";
+          tr.appendChild(td);
+          logsBody.appendChild(tr);
+          return;
+        }
+
+        items.forEach((log) => {
+          const tr = document.createElement("tr");
+          tr.style.borderTop = "1px solid rgba(255,255,255,0.04)";
+
+          const levelColor =
+            log.level === "error" ? "#ff4b5c" : "var(--text-muted)";
+
+          const tsCell = document.createElement("td");
+          tsCell.style.padding = "6px 10px";
+          tsCell.style.whiteSpace = "nowrap";
+          tsCell.textContent = new Date(log.ts).toLocaleTimeString();
+          tr.appendChild(tsCell);
+
+          const bundleCell = document.createElement("td");
+          bundleCell.style.padding = "6px 10px";
+          bundleCell.style.whiteSpace = "nowrap";
+          bundleCell.textContent = log.bundle || "-";
+          tr.appendChild(bundleCell);
+
+          const typeCell = document.createElement("td");
+          typeCell.style.padding = "6px 10px";
+          typeCell.style.whiteSpace = "nowrap";
+          typeCell.style.color = levelColor;
+          typeCell.textContent = log.type;
+          tr.appendChild(typeCell);
+
+          const msgCell = document.createElement("td");
+          msgCell.style.padding = "6px 10px";
+          msgCell.textContent = log.message;
+          tr.appendChild(msgCell);
+
+          logsBody.appendChild(tr);
+        });
+      }
+
+      refreshBtn.addEventListener("click", loadLogs);
+
+      loadLogs();
+
+      // NOTES UI (такий самий як на дашборді)
+      const notesToggle = document.getElementById("notesToggle");
+      const notesPanel = document.getElementById("notesPanel");
+      const notesText = document.getElementById("notesText");
+      const notesSaveBtn = document.getElementById("notesSaveBtn");
+      const notesCloseBtn = document.getElementById("notesCloseBtn");
+      const notesCancelBtn = document.getElementById("notesCancelBtn");
+
+      function openNotes() {
+        notesPanel.classList.remove("hidden");
+        fetch("/api/notes")
+          .then((r) => (r.ok ? r.json() : { text: "" }))
+          .then((d) => {
+            notesText.value = d.text || "";
+          })
+          .catch(() => {});
+      }
+
+      function closeNotes() {
+        notesPanel.classList.add("hidden");
+      }
+
+      notesToggle.addEventListener("click", () => {
+        if (notesPanel.classList.contains("hidden")) {
+          openNotes();
+        } else {
+          closeNotes();
+        }
+      });
+
+      notesCloseBtn.addEventListener("click", closeNotes);
+      notesCancelBtn.addEventListener("click", closeNotes);
+
+      notesSaveBtn.addEventListener("click", async () => {
+        try {
+          await fetch("/api/notes", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: notesText.value })
+          });
+          closeNotes();
+        } catch (e) {
+          console.error("Failed to save notes", e);
+        }
+      });
+    </script>
+  </body>
+</html>

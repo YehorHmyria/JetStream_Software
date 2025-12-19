@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title>JetStream · Dashboard</title>
+  <link rel="icon" type="image/png" href="/JetStream-logo.png" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+
+<body>
+  <!-- плаваюча кнопка нотаток -->
+  <div class="notes-toggle" id="notesToggle">Notes</div>
+
+  <!-- панель нотаток -->
+  <div class="notes-panel hidden" id="notesPanel">
+    <div class="notes-panel-header">
+      <div class="notes-panel-title">Private notes (encrypted on server)</div>
+      <button class="icon-button" id="notesCloseBtn">✕</button>
+    </div>
+    <textarea id="notesText" placeholder="Write anything you want to remember..."></textarea>
+    <div class="notes-panel-actions">
+      <button class="btn-outline btn" id="notesCancelBtn">Cancel</button>
+      <button class="btn" id="notesSaveBtn">
+        Save
+        <span class="arrow">✔</span>
+      </button>
+    </div>
+  </div>
+
+
+  <div class="modal-backdrop hidden" id="confirmModal">
+    <div class="modal">
+      <div class="modal-title" id="confirmModalTitle">Confirm</div>
+      <div class="modal-text" id="confirmModalText">Are you sure?</div>
+      <div class="modal-actions">
+        <button class="btn-outline btn" id="confirmCancelBtn">Cancel</button>
+        <button class="btn" id="confirmOkBtn">OK</button>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="page">
+    <main class="shell">
+      <!-- HEADER -->
+      <header class="shell-header">
+        <div class="brand">
+          <div class="brand-dot"></div>
+          <div class="brand-block">
+            <div class="brand-text">JETSTREAM</div>
+            <div class="header-subtitle">Sharing dashboard</div>
+          </div>
+        </div>
+        <div class="shell-actions">
+          <a href="/logs" class="header-link-btn">
+            <div class="btn-chip">
+              Logs
+              <span class="arrow">↗</span>
+            </div>
+          </a>
+        </div>
+      </header>
+
+      <!-- DASHBOARD -->
+      <section class="view dashboard-panel active">
+        <div class="login-panel">
+          <div class="login-title-main">Distribute conversions by days</div>
+          <div class="login-title-sub">
+            Upload CSV, select bundle and dev key. Events will be evenly
+            spaced over the selected period.
+          </div>
+        </div>
+
+        <!-- FORM START SHARING -->
+        <form action="/api/upload" method="post" enctype="multipart/form-data">
+          <div class="upload-rail">
+            <div class="upload-rail-row">
+              <div class="chip-field">
+                <div class="chip-label">Bundle</div>
+                <input type="text" name="bundle" required placeholder="com.example.app" autocomplete="off" autocapitalize="off" spellcheck="false" />
+              </div>
+
+              <div class="chip-field">
+                <div class="chip-label">Dev key</div>
+                <input type="text" name="devKey" required placeholder="AppsFlyer dev key" autocomplete="off" autocapitalize="off" spellcheck="false" />
+              </div>
+
+              <div class="chip-field" style="max-width: 120px">
+                <div class="chip-label">Days</div>
+                <input type="number" name="days" min="0.1" step="any" inputmode="decimal" value="5" required />
+              </div>
+            </div>
+
+            <!-- FILE PICKER + START BUTTON -->
+            <div class="upload-rail-row upload-rail-row-bottom">
+              <label class="file-picker">
+                <div class="file-picker-main">
+                  <span class="file-picker-label">Choose file</span>
+                  <span class="file-picker-name" id="filePickerName">
+                    No file selected
+                  </span>
+                </div>
+                <span class="file-picker-icon">📁</span>
+                <input id="fileInput" type="file" name="file" accept=".csv" required />
+              </label>
+
+              <button type="submit" class="btn btn-wide">
+                Start sharing
+                <span class="arrow">↗</span>
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <div class="dashboard-meta">
+          <div class="text-small">
+            CSV columns:
+            <code>advertising_id, appsflyer_id, android_id, country, user_ip,
+                eventname, eventtime, rn</code>
+          </div>
+          <div class="tag-soft">
+            Status updates at 09:00 &amp; 18:00, heartbeat every 8 hours
+          </div>
+        </div>
+
+        <!-- JOBS OVERVIEW -->
+        <div class="upload-rail" style="margin-top: 10px">
+          <div class="login-title-sub">Active &amp; recent jobs</div>
+
+          <!-- фільтр + рефреш -->
+          <div class="upload-rail-row" style="margin-top: 6px; align-items: center">
+            <div class="chip-field">
+              <div class="chip-label">Filter by bundle</div>
+              <input type="text" id="jobsBundleFilter" placeholder="com.example.app (optional)" autocomplete="off" autocapitalize="off" spellcheck="false" />
+            </div>
+
+            <button type="button" class="icon-button" id="jobsRefreshBtn" title="Reload jobs" style="margin-left: 6px">
+              ⟳
+            </button>
+          </div>
+
+          <div style="
+                margin-top: 10px;
+                max-height: 260px;
+                overflow-y: auto;
+                border-radius: 18px;
+                border: 1px solid rgba(255, 255, 255, 0.06);
+                background: rgba(10, 10, 12, 0.85);
+              ">
+            <table style="
+                  width: 100%;
+                  border-collapse: collapse;
+                  font-size: 11px;
+                ">
+              <thead>
+                <tr style="background: rgba(255, 255, 255, 0.02)">
+                  <th style="
+                        text-align: left;
+                        padding: 6px 10px;
+                        white-space: nowrap;
+                      ">
+                    App (bundle)
+                  </th>
+                  <th style="
+                        text-align: left;
+                        padding: 6px 10px;
+                        white-space: nowrap;
+                      ">
+                    File
+                  </th>
+                  <th style="
+                        text-align: left;
+                        padding: 6px 10px;
+                        white-space: nowrap;
+                      ">
+                    Start
+                  </th>
+                  <th style="
+                        text-align: left;
+                        padding: 6px 10px;
+                        white-space: nowrap;
+                      ">
+                    Expected end
+                  </th>
+                  <th style="
+                        text-align: left;
+                        padding: 6px 10px;
+                        white-space: nowrap;
+                      ">
+                    Progress
+                  </th>
+                  <th style="
+                        text-align: left;
+                        padding: 6px 10px;
+                        white-space: nowrap;
+                      ">
+                    Status
+                  </th>
+                  <th style="
+                        text-align: center;
+                        padding: 6px 10px;
+                        white-space: nowrap;
+                      ">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="jobsTableBody"></tbody>
+            </table>
+          </div>
+
+          <div class="text-small">
+            Shows jobs known to this server instance. Use Telegram and
+            AppsFlyer for full history.
+          </div>
+        </div>
+
+        <form action="/logout" method="post" style="margin-top: 4px">
+          <button type="submit" class="btn btn-outline">Log out</button>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // file name label
+    const fileInput = document.getElementById("fileInput");
+    const fileNameEl = document.getElementById("filePickerName");
+
+    fileInput.addEventListener("change", (e) => {
+      const file = e.target.files && e.target.files[0];
+      fileNameEl.textContent = file ? file.name : "No file selected";
+    });
+
+    // jobs
+    const jobsBody = document.getElementById("jobsTableBody");
+    const jobsBundleFilter = document.getElementById("jobsBundleFilter");
+    const jobsRefreshBtn = document.getElementById("jobsRefreshBtn");
+
+    let jobsCache = [];
+
+    async function loadJobs() {
+      try {
+        const res = await fetch("/api/jobs");
+        if (!res.ok) return;
+        const data = await res.json();
+        jobsCache = data;
+        applyJobsFilterAndRender();
+      } catch (e) {
+        console.error("Failed to load jobs", e);
+      }
+    }
+
+    function applyJobsFilterAndRender() {
+      const query = (jobsBundleFilter.value || "").trim();
+      let items = jobsCache;
+      if (query) {
+        const q = query.toLowerCase();
+        items = items.filter(
+          (j) => j.bundle && j.bundle.toLowerCase().includes(q)
+        );
+      }
+      renderJobs(items);
+    }
+
+    // кастомний confirm-модал
+    const confirmModal = document.getElementById("confirmModal");
+    const confirmTitle = document.getElementById("confirmModalTitle");
+    const confirmText = document.getElementById("confirmModalText");
+    const confirmCancelBtn = document.getElementById("confirmCancelBtn");
+    const confirmOkBtn = document.getElementById("confirmOkBtn");
+
+    let pendingConfirmAction = null;
+
+    function openConfirmModal({ title, text, okLabel, onConfirm }) {
+      confirmTitle.textContent = title || "Confirm";
+      confirmText.textContent = text || "Are you sure?";
+      confirmOkBtn.textContent = okLabel || "OK";
+
+      pendingConfirmAction = onConfirm || null;
+      confirmModal.classList.add("visible");
+    }
+
+    function closeConfirmModal() {
+      confirmModal.classList.remove("visible");
+      pendingConfirmAction = null;
+    }
+
+    confirmCancelBtn.addEventListener("click", () => {
+      closeConfirmModal();
+    });
+
+    confirmOkBtn.addEventListener("click", () => {
+      const fn = pendingConfirmAction;
+      closeConfirmModal();
+      if (typeof fn === "function") {
+        fn();
+      }
+    });
+
+    // закриття по кліку поза модалкою
+    confirmModal.addEventListener("click", (e) => {
+      if (e.target === confirmModal) {
+        closeConfirmModal();
+      }
+    });
+
+    function renderJobs(items) {
+      jobsBody.innerHTML = "";
+      if (!items.length) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 7;
+        td.style.padding = "8px 10px";
+        td.textContent = "No jobs yet.";
+        tr.appendChild(td);
+        jobsBody.appendChild(tr);
+        return;
+      }
+
+      items.forEach((job) => {
+        const tr = document.createElement("tr");
+        tr.style.borderTop = "1px solid rgba(255,255,255,0.04)";
+
+        const fmt = (d) => (d ? new Date(d).toLocaleString() : "-");
+
+        const progress = `${job.sent}/${job.total}`;
+
+        const statusLabel =
+          job.status === "finished"
+            ? "Finished"
+            : job.status === "stopped"
+              ? "Stopped"
+              : "Running";
+
+        const cells = [
+          job.bundle || "-",
+          job.fileName || "-",
+          fmt(job.createdAt),
+          fmt(job.expectedEndAt),
+          progress,
+          statusLabel
+        ];
+
+        cells.forEach((val, idx) => {
+          const td = document.createElement("td");
+          td.style.padding = "6px 10px";
+          if (idx <= 3) td.style.whiteSpace = "nowrap";
+          td.textContent = val;
+          tr.appendChild(td);
+        });
+
+        // actions cell
+        const actionsTd = document.createElement("td");
+        actionsTd.style.padding = "6px 10px";
+        actionsTd.style.textAlign = "center";
+
+        const actionsWrap = document.createElement("div");
+        actionsWrap.style.display = "inline-flex";
+        actionsWrap.style.gap = "6px";
+
+        // STOP
+        const stopBtn = document.createElement("button");
+        stopBtn.className = "icon-button danger icon-button-stop";
+        stopBtn.innerHTML = '<span class="stop-inner"></span>';
+        stopBtn.disabled = job.status !== "running";
+
+        stopBtn.addEventListener("click", () => {
+          if (stopBtn.disabled) return;
+
+          openConfirmModal({
+            title: "Stop sharing",
+            text: `Stop sharing for bundle ${job.bundle}?`,
+            okLabel: "Stop",
+            onConfirm: async () => {
+              try {
+                const res = await fetch(
+                  `/api/jobs/${encodeURIComponent(job.id)}/stop`,
+                  { method: "POST" }
+                );
+                if (res.ok) {
+                  loadJobs();
+                }
+              } catch (e) {
+                console.error("Failed to stop job", e);
+              }
+            }
+          });
+        });
+
+        // DELETE
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "icon-button destructive";
+        deleteBtn.innerHTML = "❌";
+        deleteBtn.disabled = job.status === "running";
+
+        deleteBtn.addEventListener("click", () => {
+          if (deleteBtn.disabled) return;
+
+          openConfirmModal({
+            title: "Remove job",
+            text: `Remove job for bundle ${job.bundle} from the list?`,
+            okLabel: "Delete",
+            onConfirm: async () => {
+              try {
+                const res = await fetch(
+                  `/api/jobs/${encodeURIComponent(job.id)}`,
+                  { method: "DELETE" }
+                );
+                if (res.ok) {
+                  loadJobs();
+                }
+              } catch (e) {
+                console.error("Failed to delete job", e);
+              }
+            }
+          });
+        });
+
+        actionsWrap.appendChild(stopBtn);
+        actionsWrap.appendChild(deleteBtn);
+        actionsTd.appendChild(actionsWrap);
+        tr.appendChild(actionsTd);
+
+        jobsBody.appendChild(tr);
+      });
+    }
+
+    // фільтр та рефреш
+    jobsBundleFilter.addEventListener("input", applyJobsFilterAndRender);
+    jobsRefreshBtn.addEventListener("click", loadJobs);
+
+    // NOTES UI
+    const notesToggle = document.getElementById("notesToggle");
+    const notesPanel = document.getElementById("notesPanel");
+    const notesText = document.getElementById("notesText");
+    const notesSaveBtn = document.getElementById("notesSaveBtn");
+    const notesCloseBtn = document.getElementById("notesCloseBtn");
+    const notesCancelBtn = document.getElementById("notesCancelBtn");
+
+    function openNotes() {
+      notesPanel.classList.remove("hidden");
+      fetch("/api/notes")
+        .then((r) => (r.ok ? r.json() : { text: "" }))
+        .then((d) => {
+          notesText.value = d.text || "";
+        })
+        .catch(() => { });
+    }
+
+    function closeNotes() {
+      notesPanel.classList.add("hidden");
+    }
+
+    notesToggle.addEventListener("click", () => {
+      if (notesPanel.classList.contains("hidden")) {
+        openNotes();
+      } else {
+        closeNotes();
+      }
+    });
+
+    notesCloseBtn.addEventListener("click", closeNotes);
+    notesCancelBtn.addEventListener("click", closeNotes);
+
+    notesSaveBtn.addEventListener("click", async () => {
+      try {
+        await fetch("/api/notes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: notesText.value })
+        });
+        closeNotes();
+      } catch (e) {
+        console.error("Failed to save notes", e);
+      }
+    });
+
+    // initial load
+    loadJobs();
+  </script>
+</body>
+
+</html>

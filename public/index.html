@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>JetStream · Login</title>
+    <link rel="icon" type="image/png" href="/JetStream-logo.png" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <main class="shell">
+        <header class="shell-header">
+          <div class="brand">
+            <div class="brand-dot"></div>
+            <div class="brand-text">JetStream</div>
+            <div class="login-title-sub">Secure access</div>
+          </div>
+          <div class="shell-actions">
+            <div class="badge-pill">Server-side throttled events</div>
+          </div>
+        </header>
+
+        <section class="view login-panel active">
+          <div>
+            <div class="login-title-main">Sign in to JetStream</div>
+            <div class="login-title-sub">
+              To access the dashboard, simply click the <b>Continue</b> button
+              below. No credentials required for this demonstration.
+            </div>
+          </div>
+
+          <form action="/login" method="post">
+            <div class="fields-stack">
+              <div class="input-bar">
+                <div class="input-label-pill">Username</div>
+                <input type="text" name="username" autocomplete="username" />
+              </div>
+
+              <div class="input-bar">
+                <div class="input-label-pill">Password</div>
+                <input
+                  type="password"
+                  name="password"
+                  autocomplete="current-password"
+                />
+              </div>
+            </div>
+
+            <div class="fields-stack" style="margin-top: 14px">
+              <button type="submit" class="btn">
+                Continue
+                <span class="arrow">↗</span>
+              </button>
+            </div>
+          </form>
+
+          <div id="loginError" class="error-msg" style="display: none">
+            Invalid username or password.
+          </div>
+
+          <div class="text-small">
+            Credentials are stored only as environment variables. Recommended:
+            use <code>ADMIN_PASSWORD_HASH</code> with a bcrypt hash.
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("error") === "1") {
+        const el = document.getElementById("loginError");
+        if (el) el.style.display = "block";
+      }
+    </script>
+  </body>
+</html>
